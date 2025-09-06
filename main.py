@@ -492,6 +492,7 @@ def recv_thread(sock):#수정필요
                 Processed_Board.append(tmp)
                 tmp = []
         # CurrentBoard2 = copy.deepcopy(Processed_Board)
+        playern = int(playern)
         if Players == 2:
             PlayerB2.board_ref = copy.deepcopy(Processed_Board)
         if Players == 3:
