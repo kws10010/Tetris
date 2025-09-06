@@ -9,15 +9,17 @@ import os
 os.environ['SDL_VIDEO_WINDOW_POS'] = "250,25"
 
 Players = int(input("플레이어 수는?\n: "))
-my_Turn = int(input("몇번째 플레이어 입니까? 1 or 2\n: "))
+my_Turn = int(input("몇 번째 플레이어 입니까? 1 or 2 or 3\n: "))
 player_ports = []
 player_ips = []
-for i in range(Players):
-    player_ports[i] = int(input(f"p{i}의 포트 입력: "))
-    player_ips[i] = int(input(f"p{i}의 IP입력"))
+my_port = int(input("자신의 포트입력: "))
+for i in range(Players-1):
+    player_ports.append(int(input(f"다른 플레이어의 포트 입력: ")))
+    player_ips.append(input(f"다른 플레이어의 IP입력"))
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('0.0.0.0', player_ports[0]))
+if Players > 1:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('0.0.0.0', my_port))
 save_file_path = input("불러올 맵 이름을 입력하세요. 없으면 빈 상태로 시작합니다.\n: ")+".txt"
 def LoadSavedBoard():
     try:
@@ -158,16 +160,18 @@ p1_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 3 + BOARD_X_OFFSET
 p1_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
 p2_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 1.35 + BOARD_X_OFFSET
 p2_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
-#p3_x = 
+p3_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 0.85 + BOARD_X_OFFSET
+p3_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
 PlayerB1 = PlayerBoard(1, p1_x, p1_y, BOARD_SIZE, CurrentBoard)
 PlayerB2 = PlayerBoard(2, p2_x, p2_y, BOARD_SIZE, CurrentBoard2)
-#PlayerB3 = PlayerBoard(2, p2_x, p2_y, BOARD_SIZE, CurrentBoard2)
+PlayerB3 = PlayerBoard(3, p3_x, p3_y, BOARD_SIZE, CurrentBoard3)
 
 def Func_Update_Visual():
     global NextBlockBoard
     pygame.display.set_caption(f"테트리스 [점수 : {Score}]")
     PlayerB1.draw()
     PlayerB2.draw()
+    PlayerB3.draw()
     NextBlockBoard = copy.deepcopy(BLOCKS[NextBlock])
     for i in range(4):
         for j in range(4):
@@ -359,10 +363,11 @@ def Force_Fall_Block():
                 new_board.insert(0, [0]*BOARD_WIDTH)
             if lines_cleared >= 4:
                 t="1LineUp"
+                t="Player"+str(my_Turn)+" "+t
                 if Players >= 2:
-                    sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
+                    sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
                 if Players >= 3:
-                    sock.sendto(t.encode('utf-8'),(player_ips[2],player_ports[2]))
+                    sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
             CurrentBoard[:] = copy.deepcopy(new_board)
             Score += lines_cleared * 100
             Block_Spawn_Ready = True
@@ -406,10 +411,11 @@ def Func_Fall_Block():
             new_board.insert(0, [0]*BOARD_WIDTH)
         if lines_cleared >= 4:
             t="1LineUp"
+            t="Player"+str(my_Turn)+" "+t
             if Players >= 2:
-                sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
+                sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
             if Players >= 3:
-                sock.sendto(t.encode('utf-8'),(player_ips[2],player_ports[2]))
+                sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
         CurrentBoard[:] = copy.deepcopy(new_board)
         Score += lines_cleared * 100
         Block_Spawn_Ready = True
@@ -449,7 +455,16 @@ def recv_thread(sock):#수정필요
     while True:
         data,addr = sock.recvfrom(2400)
         data = data.decode('utf-8')
-        print(f"정보를 받았습니다. from port {p2_port}")
+        spl_data = data.split(" ")
+        playern = spl_data[0][6]
+        spl_data.pop(0)
+        data = ""
+        for i,v in enumerate(spl_data):
+            data=data+v
+            if i!=len(spl_data)-1:
+                data=data+" "
+
+        print(f"정보를 받았습니다. from player{playern}\n{data}")
         if data == "1LineUp":
             Func_Line_Up(1)
             continue
@@ -477,12 +492,28 @@ def recv_thread(sock):#수정필요
                 Processed_Board.append(tmp)
                 tmp = []
         # CurrentBoard2 = copy.deepcopy(Processed_Board)
-        PlayerB2.board_ref = copy.deepcopy(Processed_Board)
+        if Players == 2:
+            PlayerB2.board_ref = copy.deepcopy(Processed_Board)
+        if Players == 3:
+            if my_Turn == 1:
+                if playern == 2:
+                    PlayerB2.board_ref = copy.deepcopy(Processed_Board)
+                elif playern == 3:
+                    PlayerB3.board_ref = copy.deepcopy(Processed_Board)
+            elif my_Turn == 2:
+                if playern == 1:
+                    PlayerB2.board_ref = copy.deepcopy(Processed_Board)
+                elif playern == 3:
+                    PlayerB3.board_ref = copy.deepcopy(Processed_Board)
+            elif my_Turn == 3:
+                if playern == 1:
+                    PlayerB2.board_ref = copy.deepcopy(Processed_Board)
+                elif playern == 2:
+                    PlayerB3.board_ref = copy.deepcopy(Processed_Board)
         # PlayerB2.update_board_ref(Processed_Board)
-th_recv = threading.Thread(target=recv_thread,args=(sock,),daemon=True)
-th_recv.start()
-th_recv = threading.Thread(target=recv_thread2,args=(sock,),daemon=True)
-th_recv.start()
+if Players > 1:
+    th_recv = threading.Thread(target=recv_thread,args=(sock,),daemon=True)
+    th_recv.start()
 
 key_pressed = {"Down" : False,"Left" : False,"Right" : False}
 key_cooldown = {"Right": 0, "Left": 0, "Down": 0}
@@ -560,8 +591,10 @@ while Run:
                     tt = str(p[0])+"$"+str(p[1])+"$None"
                 t=t+tt+" "
             t=t+"\n "
+        
+        t="Player"+str(my_Turn)+" "+t
         if Players >= 2:
-            sock.sendto(t.encode('utf-8'),(player_ips[1],player_ips[1]))
+            sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
         if Players >= 3:
-            sock.sendto(t.encode('utf-8'),(player_ips[2],player_ips[2]))
+            sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
     tick+=1
