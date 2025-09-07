@@ -26,6 +26,7 @@ if Players > 1 and not DEBUG:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('0.0.0.0', my_port))
 save_file_path = input("불러올 맵 이름을 입력하세요. 없으면 빈 상태로 시작합니다.\n: ")+".txt"
+
 def LoadSavedBoard():
     try:
         with open(save_file_path, "r", encoding="utf-8") as file:
@@ -71,12 +72,13 @@ pygame.init()
 pygame.font.init()
 TextFont = pygame.font.SysFont("Segoe UI Symbol", 24)
 EmojiFont = pygame.font.SysFont("Segoe UI Emoji", 24)
-screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y],pygame.RESIZABLE)
+screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y], pygame.RESIZABLE)
 Gameover = False
 
 CurrentBoard = LoadSavedBoard() if not DEBUG else [[0 for i in range(BOARD_WIDTH)] for i in range(BOARD_HEIGHT)]
 CurrentBoard2 = [[0 for i in range(BOARD_WIDTH)] for i in range(BOARD_HEIGHT)]
 CurrentBoard3 = [[0 for i in range(BOARD_WIDTH)] for i in range(BOARD_HEIGHT)]
+OtherBoards = {}
 Run = True
 Block_Spawn_Ready = True
 Score = 0
@@ -127,7 +129,6 @@ class PlayerBoard:
         self.y_offset = y_offset
         self.cell_size = cell_size
         self.board_ref = board_ref
-    
     def update_board_ref(self, processed_data):
         self.board_ref = processed_data
     def draw(self):
@@ -141,11 +142,9 @@ class PlayerBoard:
                         color = BLOCKS_COLOR[cell[0]]
                     else:
                         color = [50, 50, 50]
-
                 x = self.x_offset + j * self.cell_size
                 y = self.y_offset + i * self.cell_size
                 pygame.draw.rect(screen, color, [x, y, self.cell_size, self.cell_size])
-
                 if isinstance(cell, list) and len(cell) > 2 and cell[2] is not None:
                     text = EmojiFont.render(SPECIAL_EMOJI[cell[2]], True, [0, 0, 0])
                     screen.blit(text, (x+2, y+2))
@@ -160,29 +159,49 @@ class PlayerBoard:
             x2 = x1 + self.cell_size * BOARD_WIDTH
             pygame.draw.line(screen, [185,185,185], [x1, y], [x2, y], 2)
 
+PlayerB1 = None
+OthersPB = {}
+
+def layout(screen_w, screen_h, others_count):
+    right_w = int(screen_w * 0.35)
+    center_w = screen_w - right_w
+    main_size = int(min((center_w*0.9)//BOARD_WIDTH, (screen_h*0.9)//BOARD_HEIGHT))
+    if main_size < 5:
+        main_size = 5
+    main_px_w = BOARD_WIDTH * main_size
+    main_px_h = BOARD_HEIGHT * main_size
+    main_x = (center_w - main_px_w)//2
+    main_y = (screen_h - main_px_h)//2
+    mini_size = int(min((right_w*0.8)//BOARD_WIDTH, (screen_h*0.9/max(1,others_count))//BOARD_HEIGHT))
+    if mini_size < 3:
+        mini_size = 3
+    mini_px_w = BOARD_WIDTH * mini_size
+    mini_x = center_w + (right_w - mini_px_w)//2
+    if others_count == 0:
+        minis = []
+    else:
+        step = screen_h/(others_count+1)
+        minis = [(mini_x, int(step*(i+1) - (BOARD_HEIGHT*mini_size)/2), mini_size) for i in range(others_count)]
+    return (main_x, main_y, main_size), minis
+
 def get_board_positions(players, screen_w, screen_h):
-    board_size = min((screen_w // (players+2)) // BOARD_WIDTH, (screen_h // 2) // BOARD_HEIGHT)
-    board_pixel_width = BOARD_WIDTH * board_size
-    board_pixel_height = BOARD_HEIGHT * board_size
-    positions = []
-    spacing_x = screen_w / (players + 1)
-    y = (screen_h - board_pixel_height) / 2
-    for i in range(players):
-        x = spacing_x * (i + 1) - board_pixel_width / 2
-        positions.append((x, y, board_size))
-    return positions
+    main, minis = layout(screen_w, screen_h, players-1)
+    res = [(main[0], main[1], main[2])]
+    for m in minis:
+        res.append(m)
+    return res
 
 def update_boards():
-    global PlayerB1, PlayerB2, PlayerB3, positions
+    global PlayerB1, OthersPB
     positions = get_board_positions(Players, SCREEN_X, SCREEN_Y)
     p1_x, p1_y, size1 = positions[0]
     PlayerB1 = PlayerBoard(1, p1_x, p1_y, size1, CurrentBoard)
-    if Players >= 2:
-        p2_x, p2_y, size2 = positions[1]
-        PlayerB2 = PlayerBoard(2, p2_x, p2_y, size2, CurrentBoard2)
-    if Players >= 3:
-        p3_x, p3_y, size3 = positions[2]
-        PlayerB3 = PlayerBoard(3, p3_x, p3_y, size3, CurrentBoard3)
+    other_ids = sorted([i for i in range(1, Players+1) if i != my_Turn])
+    for idx, pid in enumerate(other_ids):
+        if pid not in OtherBoards:
+            OtherBoards[pid] = [[0 for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
+        x, y, s = positions[idx+1]
+        OthersPB[pid] = PlayerBoard(pid, x, y, s, OtherBoards[pid])
 
 update_boards()
 
@@ -190,14 +209,12 @@ def Func_Update_Visual():
     global NextBlockBoard
     pygame.display.set_caption(f"테트리스 [점수 : {Score}]")
     PlayerB1.draw()
-    if Players >= 2:
-        PlayerB2.draw()
-    if Players >= 3:
-        PlayerB3.draw()
+    for pid in sorted(OthersPB.keys()):
+        OthersPB[pid].draw()
     NextBlockBoard = copy.deepcopy(BLOCKS[NextBlock])
     for i in range(4):
         for j in range(4):
-            x = SCREEN_X / 6.5 + j * BOARD_SIZE
+            x = SCREEN_X / 20 + j * BOARD_SIZE
             y = SCREEN_Y / 25 + i * BOARD_SIZE
             if NextBlockBoard[i][j] != 0:
                 color = BLOCKS_COLOR[NextBlock]
@@ -205,17 +222,17 @@ def Func_Update_Visual():
                 color = [50,50,50]
             pygame.draw.rect(screen, color, [x, y, BOARD_SIZE, BOARD_SIZE])
     for i in range(5):
-        x = SCREEN_X / 6.5 + BOARD_SIZE * i
+        x = SCREEN_X / 20 + BOARD_SIZE * i
         y = SCREEN_Y / 25
         y2 = y + BOARD_SIZE * 4
         pygame.draw.line(screen, [125,125,125], [x, y], [x, y2], 2)
     for i in range(5):
-        x = SCREEN_X / 6.5
+        x = SCREEN_X / 20
         y = SCREEN_Y / 25 + BOARD_SIZE * i
         x2 = x + BOARD_SIZE * 4
         pygame.draw.line(screen, [125,125,125], [x, y], [x2, y], 2)
     Next_Text = TextFont.render("Next:", True, (255,255,255))
-    screen.blit(Next_Text, (SCREEN_X/12,SCREEN_Y/30.75))
+    screen.blit(Next_Text, (SCREEN_X/40,SCREEN_Y/30.75))
     pygame.display.flip()
 
 def Func_Spawn_Block(Next_Block):
@@ -387,9 +404,8 @@ def Force_Fall_Block():
                 t="1LineUp"
                 t="Player"+str(my_Turn)+" "+t
                 if Players >= 2 and not DEBUG:
-                    sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
-                if Players >= 3 and not DEBUG:
-                    sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
+                    for ip,port in zip(player_ips,player_ports):
+                        sock.sendto(t.encode('utf-8'),(ip,port))
             CurrentBoard[:] = copy.deepcopy(new_board)
             Score += lines_cleared * 100
             Block_Spawn_Ready = True
@@ -435,9 +451,8 @@ def Func_Fall_Block():
             t="1LineUp"
             t="Player"+str(my_Turn)+" "+t
             if Players >= 2 and not DEBUG:
-                sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
-            if Players >= 3 and not DEBUG:
-                sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
+                for ip,port in zip(player_ips,player_ports):
+                    sock.sendto(t.encode('utf-8'),(ip,port))
         CurrentBoard[:] = copy.deepcopy(new_board)
         Score += lines_cleared * 100
         Block_Spawn_Ready = True
@@ -469,31 +484,28 @@ def Func_Line_Up(lines):
         else:
             fill.append([random.randint(0,6),False,None])
     CurrentBoard[target_line] = fill
-    
 
 
-def recv_thread(sock):#수정필요
-    global data,winner,Run,ForceStop,CurrentBoard2
+def recv_thread(sock):
+    global Run, OtherBoards, OthersPB
     while True:
-        data,addr = sock.recvfrom(2400)
+        data,addr = sock.recvfrom(1<<20)
         data = data.decode('utf-8')
         spl_data = data.split(" ")
-        playern = spl_data[0][6]
-        spl_data.pop(0)
-        data = ""
-        for i,v in enumerate(spl_data):
-            data=data+v
-            if i!=len(spl_data)-1:
-                data=data+" "
-
-        print(f"정보를 받았습니다. from player{playern}\n{data}")
-        if data == "1LineUp":
+        header = spl_data[0]
+        if not header.startswith("Player"):
+            continue
+        playern = int(header[6:])
+        payload = " ".join(spl_data[1:])
+        if playern == my_Turn:
+            continue
+        if payload == "1LineUp":
             Func_Line_Up(1)
             continue
-        Loaded_Board = data.split(" ")
+        Loaded_Board = payload.split(" ")
         Processed_Board = []
         tmp = []
-        for i,q in enumerate(Loaded_Board):
+        for q in Loaded_Board:
             if q=="\n":
                 continue
             if q=="0":
@@ -513,27 +525,11 @@ def recv_thread(sock):#수정필요
             if len(tmp) == BOARD_WIDTH:
                 Processed_Board.append(tmp)
                 tmp = []
-        # CurrentBoard2 = copy.deepcopy(Processed_Board)
-        playern = int(playern)
-        if Players == 2:
-            PlayerB2.board_ref = copy.deepcopy(Processed_Board)
-        if Players == 3:
-            if my_Turn == 1:
-                if playern == 2:
-                    PlayerB2.board_ref = copy.deepcopy(Processed_Board)
-                elif playern == 3:
-                    PlayerB3.board_ref = copy.deepcopy(Processed_Board)
-            elif my_Turn == 2:
-                if playern == 1:
-                    PlayerB2.board_ref = copy.deepcopy(Processed_Board)
-                elif playern == 3:
-                    PlayerB3.board_ref = copy.deepcopy(Processed_Board)
-            elif my_Turn == 3:
-                if playern == 1:
-                    PlayerB2.board_ref = copy.deepcopy(Processed_Board)
-                elif playern == 2:
-                    PlayerB3.board_ref = copy.deepcopy(Processed_Board)
-        # PlayerB2.update_board_ref(Processed_Board)
+        OtherBoards[playern] = copy.deepcopy(Processed_Board)
+        if playern not in OthersPB:
+            OthersPB[playern] = PlayerBoard(playern, 0, 0, 5, OtherBoards[playern])
+        OthersPB[playern].board_ref = OtherBoards[playern]
+
 if Players > 1 and not DEBUG:
     th_recv = threading.Thread(target=recv_thread,args=(sock,),daemon=True)
     th_recv.start()
@@ -610,7 +606,7 @@ while Run:
     if something:
         t = ""
         for q in CurrentBoard:
-            for i,p in enumerate(q):
+            for p in q:
                 if p==0:
                     t=t+"0 "
                     continue
@@ -620,10 +616,8 @@ while Run:
                     tt = str(p[0])+"$"+str(p[1])+"$None"
                 t=t+tt+" "
             t=t+"\n "
-        
         t="Player"+str(my_Turn)+" "+t
         if Players >= 2 and not DEBUG:
-            sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
-        if Players >= 3 and not DEBUG:
-            sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
+            for ip,port in zip(player_ips,player_ports):
+                sock.sendto(t.encode('utf-8'),(ip,port))
     tick+=1
