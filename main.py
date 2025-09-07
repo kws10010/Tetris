@@ -6,7 +6,7 @@ import numpy
 import socket
 import threading
 import os
-DEBUG = True
+DEBUG = False
 os.environ['SDL_VIDEO_WINDOW_POS'] = "250,25"
 
 Players = int(input("플레이어 수는?\n: "))
@@ -160,15 +160,31 @@ class PlayerBoard:
             x2 = x1 + self.cell_size * BOARD_WIDTH
             pygame.draw.line(screen, [185,185,185], [x1, y], [x2, y], 2)
 
-p1_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 4
-p1_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
-p2_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 1.35
-p2_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
-p3_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 1
-p3_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
+board_pixel_width = BOARD_WIDTH * BOARD_SIZE
+board_pixel_height = BOARD_HEIGHT * BOARD_SIZE
+
+def get_board_positions(players):
+    positions = []
+    spacing_x = SCREEN_X / (players + 1)
+    y = (SCREEN_Y - board_pixel_height) / 2
+    for i in range(players):
+        x = spacing_x * (i + 1) - board_pixel_width / 2
+        positions.append((x, y))
+    return positions
+
+positions = get_board_positions(Players)
+
+p1_x, p1_y = positions[0]
+if Players >= 2:
+    p2_x, p2_y = positions[1]
+if Players >= 3:
+    p3_x, p3_y = positions[2]
+
 PlayerB1 = PlayerBoard(1, p1_x, p1_y, BOARD_SIZE, CurrentBoard)
-PlayerB2 = PlayerBoard(2, p2_x, p2_y, BOARD_SIZE, CurrentBoard2)
-PlayerB3 = PlayerBoard(3, p3_x, p3_y, BOARD_SIZE, CurrentBoard3)
+if Players >= 2:
+    PlayerB2 = PlayerBoard(2, p2_x, p2_y, BOARD_SIZE, CurrentBoard2)
+if Players >= 3:
+    PlayerB3 = PlayerBoard(3, p3_x, p3_y, BOARD_SIZE, CurrentBoard3)
 
 def Func_Update_Visual():
     global NextBlockBoard
