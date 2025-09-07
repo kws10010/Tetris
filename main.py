@@ -64,14 +64,14 @@ def LoadSavedBoard():
 SCREEN_X,SCREEN_Y = 800,800
 BOARD_WIDTH = 10
 BOARD_HEIGHT = 20
-BOARD_SIZE = 30 - Players*5
+BOARD_SIZE = 35 - Players*5
 FPS = 60
 CLOCK = pygame.time.Clock()
 pygame.init()
 pygame.font.init()
 TextFont = pygame.font.SysFont("Segoe UI Symbol", 24)
 EmojiFont = pygame.font.SysFont("Segoe UI Emoji", 24)
-screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
+screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y],pygame.RESIZABLE)
 Gameover = False
 
 CurrentBoard = LoadSavedBoard() if not DEBUG else [[0 for i in range(BOARD_WIDTH)] for i in range(BOARD_HEIGHT)]
@@ -160,31 +160,31 @@ class PlayerBoard:
             x2 = x1 + self.cell_size * BOARD_WIDTH
             pygame.draw.line(screen, [185,185,185], [x1, y], [x2, y], 2)
 
-board_pixel_width = BOARD_WIDTH * BOARD_SIZE
-board_pixel_height = BOARD_HEIGHT * BOARD_SIZE
-
-def get_board_positions(players):
+def get_board_positions(players, screen_w, screen_h):
+    board_size = min((screen_w // (players+2)) // BOARD_WIDTH, (screen_h // 2) // BOARD_HEIGHT)
+    board_pixel_width = BOARD_WIDTH * board_size
+    board_pixel_height = BOARD_HEIGHT * board_size
     positions = []
-    spacing_x = SCREEN_X / (players + 1)
-    y = (SCREEN_Y - board_pixel_height) / 2
+    spacing_x = screen_w / (players + 1)
+    y = (screen_h - board_pixel_height) / 2
     for i in range(players):
         x = spacing_x * (i + 1) - board_pixel_width / 2
-        positions.append((x, y))
+        positions.append((x, y, board_size))
     return positions
 
-positions = get_board_positions(Players)
+def update_boards():
+    global PlayerB1, PlayerB2, PlayerB3, positions
+    positions = get_board_positions(Players, SCREEN_X, SCREEN_Y)
+    p1_x, p1_y, size1 = positions[0]
+    PlayerB1 = PlayerBoard(1, p1_x, p1_y, size1, CurrentBoard)
+    if Players >= 2:
+        p2_x, p2_y, size2 = positions[1]
+        PlayerB2 = PlayerBoard(2, p2_x, p2_y, size2, CurrentBoard2)
+    if Players >= 3:
+        p3_x, p3_y, size3 = positions[2]
+        PlayerB3 = PlayerBoard(3, p3_x, p3_y, size3, CurrentBoard3)
 
-p1_x, p1_y = positions[0]
-if Players >= 2:
-    p2_x, p2_y = positions[1]
-if Players >= 3:
-    p3_x, p3_y = positions[2]
-
-PlayerB1 = PlayerBoard(1, p1_x, p1_y, BOARD_SIZE, CurrentBoard)
-if Players >= 2:
-    PlayerB2 = PlayerBoard(2, p2_x, p2_y, BOARD_SIZE, CurrentBoard2)
-if Players >= 3:
-    PlayerB3 = PlayerBoard(3, p3_x, p3_y, BOARD_SIZE, CurrentBoard3)
+update_boards()
 
 def Func_Update_Visual():
     global NextBlockBoard
@@ -559,6 +559,10 @@ while Run:
         Run = False
         break
     for event in pygame.event.get():
+        if event.type == pygame.VIDEORESIZE:
+            SCREEN_X, SCREEN_Y = event.w, event.h
+            screen = pygame.display.set_mode((SCREEN_X, SCREEN_Y), pygame.RESIZABLE)
+            update_boards()
         if event.type == pygame.QUIT:
             Run = False
             break
