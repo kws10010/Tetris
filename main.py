@@ -6,18 +6,23 @@ import numpy
 import socket
 import threading
 import os
+DEBUG = True
 os.environ['SDL_VIDEO_WINDOW_POS'] = "250,25"
 
 Players = int(input("플레이어 수는?\n: "))
-my_Turn = int(input("몇 번째 플레이어 입니까? 1 or 2 or 3\n: "))
+my_Turn = 1
 player_ports = []
 player_ips = []
-my_port = int(input("자신의 포트입력: "))
-for i in range(Players-1):
-    player_ports.append(int(input(f"다른 플레이어의 포트 입력: ")))
-    player_ips.append(input(f"다른 플레이어의 IP입력"))
-
+my_port = 0
 if Players > 1:
+    my_Turn = int(input("몇 번째 플레이어 입니까? 1 or 2 or 3\n: "))
+    my_port = int(input("자신의 포트입력: "))
+if not DEBUG:
+    for i in range(Players-1):
+        player_ports.append(int(input(f"다른 플레이어의 포트 입력: ")))
+        player_ips.append(input(f"다른 플레이어의 IP입력"))
+
+if Players > 1 and not DEBUG:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('0.0.0.0', my_port))
 save_file_path = input("불러올 맵 이름을 입력하세요. 없으면 빈 상태로 시작합니다.\n: ")+".txt"
@@ -59,8 +64,7 @@ def LoadSavedBoard():
 SCREEN_X,SCREEN_Y = 800,800
 BOARD_WIDTH = 10
 BOARD_HEIGHT = 20
-BOARD_SIZE = 15
-BOARD_X_OFFSET = -(SCREEN_X/4)
+BOARD_SIZE = 30 - Players*5
 FPS = 60
 CLOCK = pygame.time.Clock()
 pygame.init()
@@ -70,7 +74,7 @@ EmojiFont = pygame.font.SysFont("Segoe UI Emoji", 24)
 screen = pygame.display.set_mode([SCREEN_X, SCREEN_Y])
 Gameover = False
 
-CurrentBoard = LoadSavedBoard()
+CurrentBoard = LoadSavedBoard() if not DEBUG else [[0 for i in range(BOARD_WIDTH)] for i in range(BOARD_HEIGHT)]
 CurrentBoard2 = [[0 for i in range(BOARD_WIDTH)] for i in range(BOARD_HEIGHT)]
 CurrentBoard3 = [[0 for i in range(BOARD_WIDTH)] for i in range(BOARD_HEIGHT)]
 Run = True
@@ -156,11 +160,11 @@ class PlayerBoard:
             x2 = x1 + self.cell_size * BOARD_WIDTH
             pygame.draw.line(screen, [185,185,185], [x1, y], [x2, y], 2)
 
-p1_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 3 + BOARD_X_OFFSET
+p1_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 4
 p1_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
-p2_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 1.35 + BOARD_X_OFFSET
+p2_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 1.35
 p2_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
-p3_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 0.85 + BOARD_X_OFFSET
+p3_x = (SCREEN_X - (BOARD_WIDTH * BOARD_SIZE)) / 1
 p3_y = (SCREEN_Y - (BOARD_HEIGHT * BOARD_SIZE)) / 1.5
 PlayerB1 = PlayerBoard(1, p1_x, p1_y, BOARD_SIZE, CurrentBoard)
 PlayerB2 = PlayerBoard(2, p2_x, p2_y, BOARD_SIZE, CurrentBoard2)
@@ -170,8 +174,10 @@ def Func_Update_Visual():
     global NextBlockBoard
     pygame.display.set_caption(f"테트리스 [점수 : {Score}]")
     PlayerB1.draw()
-    PlayerB2.draw()
-    PlayerB3.draw()
+    if Players >= 2:
+        PlayerB2.draw()
+    if Players >= 3:
+        PlayerB3.draw()
     NextBlockBoard = copy.deepcopy(BLOCKS[NextBlock])
     for i in range(4):
         for j in range(4):
@@ -364,9 +370,9 @@ def Force_Fall_Block():
             if lines_cleared >= 4:
                 t="1LineUp"
                 t="Player"+str(my_Turn)+" "+t
-                if Players >= 2:
+                if Players >= 2 and not DEBUG:
                     sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
-                if Players >= 3:
+                if Players >= 3 and not DEBUG:
                     sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
             CurrentBoard[:] = copy.deepcopy(new_board)
             Score += lines_cleared * 100
@@ -412,9 +418,9 @@ def Func_Fall_Block():
         if lines_cleared >= 4:
             t="1LineUp"
             t="Player"+str(my_Turn)+" "+t
-            if Players >= 2:
+            if Players >= 2 and not DEBUG:
                 sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
-            if Players >= 3:
+            if Players >= 3 and not DEBUG:
                 sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
         CurrentBoard[:] = copy.deepcopy(new_board)
         Score += lines_cleared * 100
@@ -512,7 +518,7 @@ def recv_thread(sock):#수정필요
                 elif playern == 2:
                     PlayerB3.board_ref = copy.deepcopy(Processed_Board)
         # PlayerB2.update_board_ref(Processed_Board)
-if Players > 1:
+if Players > 1 and not DEBUG:
     th_recv = threading.Thread(target=recv_thread,args=(sock,),daemon=True)
     th_recv.start()
 
@@ -556,6 +562,8 @@ while Run:
             if event.key == pygame.K_q:
                 for i in CurrentBoard:
                     print(i)
+            if event.key == pygame.K_p:
+                Score += 1000
             if event.key == pygame.K_SPACE:
                 Force_Fall_Block()
                 something = True
@@ -594,8 +602,8 @@ while Run:
             t=t+"\n "
         
         t="Player"+str(my_Turn)+" "+t
-        if Players >= 2:
+        if Players >= 2 and not DEBUG:
             sock.sendto(t.encode('utf-8'),(player_ips[0],player_ports[0]))
-        if Players >= 3:
+        if Players >= 3 and not DEBUG:
             sock.sendto(t.encode('utf-8'),(player_ips[1],player_ports[1]))
     tick+=1
