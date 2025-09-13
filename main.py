@@ -9,6 +9,7 @@ import os
 DEBUG = False
 os.environ['SDL_VIDEO_WINDOW_POS'] = "250,25"
 
+Started = False
 Players = int(input("플레이어 수는?\n: "))
 my_Turn = 1
 player_ports = []
@@ -490,7 +491,7 @@ def Func_Line_Up(lines):
 
 
 def recv_thread(sock):
-    global Run, OtherBoards, OthersPB
+    global Run, OtherBoards, OthersPB, Started
     while True:
         data,addr = sock.recvfrom(1<<20)
         data = data.decode('utf-8')
@@ -504,6 +505,10 @@ def recv_thread(sock):
             continue
         if payload == "1LineUp":
             Func_Line_Up(1)
+            continue
+        print(data)
+        if data == "StartGame":
+            Started = True
             continue
         Loaded_Board = payload.split(" ")
         Processed_Board = []
@@ -540,6 +545,18 @@ if Players > 1 and not DEBUG:
 key_pressed = {"Down" : False,"Left" : False,"Right" : False}
 key_cooldown = {"Right": 0, "Left": 0, "Down": 0}
 COOLDOWN_TIME = 5
+
+if my_Turn == 1:
+    if Players >= 2 and not DEBUG:
+        t="StartGame"
+        for ip,port in zip(player_ips,player_ports):
+            sock.sendto(t.encode('utf-8'),(ip,port))
+else:
+    while not Started:
+        print("게임이 시작될때까지 대기하세요")
+        time.sleep(0.25)
+        if Started:
+            break
 
 while Run:
     CLOCK.tick(FPS)
