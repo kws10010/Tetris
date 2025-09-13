@@ -14,10 +14,10 @@ my_Turn = 1
 player_ports = []
 player_ips = []
 my_port = 0
-if Players > 1:
-    my_Turn = int(input("몇 번째 플레이어 입니까? 1 or 2 or 3\n: "))
-    my_port = int(input("자신의 포트입력: "))
 if not DEBUG:
+    if Players > 1:
+        my_Turn = int(input("몇 번째 플레이어 입니까? 1 or 2 or 3\n: "))
+        my_port = int(input("자신의 포트입력: "))
     for i in range(Players-1):
         player_ports.append(int(input(f"다른 플레이어의 포트 입력: ")))
         player_ips.append(input(f"다른 플레이어의 IP입력"))
@@ -65,7 +65,6 @@ def LoadSavedBoard():
 SCREEN_X,SCREEN_Y = 800,800
 BOARD_WIDTH = 10
 BOARD_HEIGHT = 20
-BOARD_SIZE = 35 - Players*5
 FPS = 60
 CLOCK = pygame.time.Clock()
 pygame.init()
@@ -170,18 +169,22 @@ def layout(screen_w, screen_h, others_count):
         main_size = 5
     main_px_w = BOARD_WIDTH * main_size
     main_px_h = BOARD_HEIGHT * main_size
-    main_x = (center_w - main_px_w)//2
-    main_y = (screen_h - main_px_h)//2
-    mini_size = int(min((right_w*0.8)//BOARD_WIDTH, (screen_h*0.9/max(1,others_count))//BOARD_HEIGHT))
+    main_x = (screen_w - right_w - main_px_w) // 2
+    main_y = (screen_h - main_px_h) // 2
+    mini_size = int(min((right_w*0.8)//BOARD_WIDTH, (screen_h*0.8/max(1,others_count))//BOARD_HEIGHT))
     if mini_size < 3:
         mini_size = 3
+    mini_px_h = BOARD_HEIGHT * mini_size
     mini_px_w = BOARD_WIDTH * mini_size
-    mini_x = center_w + (right_w - mini_px_w)//2
-    if others_count == 0:
-        minis = []
-    else:
-        step = screen_h/(others_count+1)
-        minis = [(mini_x, int(step*(i+1) - (BOARD_HEIGHT*mini_size)/2), mini_size) for i in range(others_count)]
+    mini_x = screen_w - right_w + (right_w - mini_px_w)//2
+    minis = []
+    if others_count > 0:
+        total_h = others_count * mini_px_h
+        spacing = (screen_h - total_h) // (others_count + 1)
+        y = spacing
+        for i in range(others_count):
+            minis.append((mini_x, y, mini_size))
+            y += mini_px_h + spacing
     return (main_x, main_y, main_size), minis
 
 def get_board_positions(players, screen_w, screen_h):
@@ -205,6 +208,7 @@ def update_boards():
 
 update_boards()
 
+
 def Func_Update_Visual():
     global NextBlockBoard
     pygame.display.set_caption(f"테트리스 [점수 : {Score}]")
@@ -212,27 +216,26 @@ def Func_Update_Visual():
     for pid in sorted(OthersPB.keys()):
         OthersPB[pid].draw()
     NextBlockBoard = copy.deepcopy(BLOCKS[NextBlock])
+    next_size = int(PlayerB1.cell_size * 0.7)
+    base_x = SCREEN_X // 25
+    base_y = SCREEN_Y // 20
     for i in range(4):
         for j in range(4):
-            x = SCREEN_X / 20 + j * BOARD_SIZE
-            y = SCREEN_Y / 25 + i * BOARD_SIZE
-            if NextBlockBoard[i][j] != 0:
-                color = BLOCKS_COLOR[NextBlock]
-            else:
-                color = [50,50,50]
-            pygame.draw.rect(screen, color, [x, y, BOARD_SIZE, BOARD_SIZE])
+            x = base_x + j * next_size
+            y = base_y + i * next_size
+            color = BLOCKS_COLOR[NextBlock] if NextBlockBoard[i][j] != 0 else [50,50,50]
+            pygame.draw.rect(screen, color, [x, y, next_size, next_size])
     for i in range(5):
-        x = SCREEN_X / 20 + BOARD_SIZE * i
-        y = SCREEN_Y / 25
-        y2 = y + BOARD_SIZE * 4
-        pygame.draw.line(screen, [125,125,125], [x, y], [x, y2], 2)
-    for i in range(5):
-        x = SCREEN_X / 20
-        y = SCREEN_Y / 25 + BOARD_SIZE * i
-        x2 = x + BOARD_SIZE * 4
-        pygame.draw.line(screen, [125,125,125], [x, y], [x2, y], 2)
-    Next_Text = TextFont.render("Next:", True, (255,255,255))
-    screen.blit(Next_Text, (SCREEN_X/40,SCREEN_Y/30.75))
+        pygame.draw.line(screen, [125,125,125],
+                         [base_x + next_size * i, base_y],
+                         [base_x + next_size * i, base_y + next_size * 4], 2)
+        pygame.draw.line(screen, [125,125,125],
+                         [base_x, base_y + next_size * i],
+                         [base_x + next_size * 4, base_y + next_size * i], 2)
+    font_size = max(14, int(next_size * 0.8))
+    font = pygame.font.SysFont("Segoe UI Symbol", font_size)
+    Next_Text = font.render("Next:", True, (255,255,255))
+    screen.blit(Next_Text, (base_x, base_y - font_size - 5))
     pygame.display.flip()
 
 def Func_Spawn_Block(Next_Block):
@@ -621,4 +624,3 @@ while Run:
             for ip,port in zip(player_ips,player_ports):
                 sock.sendto(t.encode('utf-8'),(ip,port))
     tick+=1
-    
