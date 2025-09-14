@@ -138,8 +138,6 @@ class PlayerBoard:
         self.y_offset = y_offset
         self.cell_size = cell_size
         self.board_ref = board_ref
-    def update_board_ref(self, processed_data):
-        self.board_ref = processed_data
     def draw(self):
         for i in range(BOARD_HEIGHT):
             for j in range(BOARD_WIDTH):
