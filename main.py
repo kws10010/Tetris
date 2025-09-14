@@ -486,17 +486,18 @@ def Func_Change_Block(n):
 def Func_Line_Up(lines):
     global CurrentBoard
     target_line = 0
-    for i,row in enumerate(CurrentBoard):
-        if row == [0 for i in range(BOARD_WIDTH)]:
-            target_line = i
-    fill = []
-    blank = random.randint(0,BOARD_WIDTH-1)
-    for i in range(BOARD_WIDTH):
-        if i==blank:
-            fill.append(0)
-        else:
-            fill.append([random.randint(0,6),False,None])
-    CurrentBoard[target_line] = fill
+    for x in range(lines):
+        for i,row in enumerate(CurrentBoard):
+            if row == [0 for i in range(BOARD_WIDTH)]:
+                target_line = i
+        fill = []
+        blank = random.randint(0,BOARD_WIDTH-1)
+        for i in range(BOARD_WIDTH):
+            if i==blank:
+                fill.append(0)
+            else:
+                fill.append([random.randint(0,6),False,None])
+        CurrentBoard[target_line] = fill
 
 
 def recv_thread(sock):
@@ -516,10 +517,6 @@ def recv_thread(sock):
             continue
         if payload == "1LineUp":
             Func_Line_Up(1)
-            continue
-        print(data)
-        if data == "StartGame":
-            Started = True
             continue
         Loaded_Board = payload.split(" ")
         Processed_Board = []
@@ -555,7 +552,7 @@ if Players > 1 and not DEBUG:
 
 key_pressed = {"Down" : False,"Left" : False,"Right" : False}
 key_cooldown = {"Right": 0, "Left": 0, "Down": 0}
-COOLDOWN_TIME = 5
+COOLDOWN_TIME = 3
 
 
 if my_Turn != 1:
@@ -607,6 +604,16 @@ while Run:
                     print(i)
             if event.key == pygame.K_p:
                 Score += 1000
+            if event.key == pygame.K_o:
+                Score -= 1000
+            if event.key == pygame.K_s:
+                if Players >= 2 and not DEBUG:
+                    t=input("다른 플레이어에게 전달할 메시지 입력\n: ")
+                    t="Player"+str(my_Turn)+" "+t
+                    for ip,port in zip(player_ips,player_ports):
+                        sock.sendto(t.encode('utf-8'),(ip,port))
+                else:
+                    print("현재 사용 불가")
             if event.key == pygame.K_SPACE:
                 Force_Fall_Block()
                 something = True
