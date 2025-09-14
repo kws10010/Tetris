@@ -10,18 +10,27 @@ DEBUG = False
 os.environ['SDL_VIDEO_WINDOW_POS'] = "250,25"
 
 Started = False
-Players = int(input("플레이어 수는?\n: "))
+Players = int(input("플레이어 수는? 최대 4명\n: "))
 my_Turn = 1
 player_ports = []
 player_ips = []
 my_port = 0
+ports = [None,1234,2345,3456,4567]
 if not DEBUG:
     if Players > 1:
-        my_Turn = int(input("몇 번째 플레이어 입니까? 1 or 2 or 3\n: "))
-        my_port = int(input("자신의 포트입력: "))
+        IS_LOCAL = False if int(input("로컬 실행 환경 입니까? 1 - 예 2 - 아니오\n: "))==2 else True
+        #IS_LOCAL 값에 따라 다른 플레이어의 IP 주소가 localhost로 통합
+        my_Turn = int(input("몇 번째 플레이어 입니까? 1~4\n: "))
+        my_port = ports[my_Turn]#int(input("자신의 포트입력: "))
+
+    for i in range(1,Players+1): #포트 플레이어에 따라 임의로 지정 >> ports 리스트
+        if i!=my_Turn:
+            player_ports.append(ports[i])
     for i in range(Players-1):
-        player_ports.append(int(input(f"다른 플레이어의 포트 입력: ")))
-        player_ips.append(input(f"다른 플레이어의 IP입력"))
+        if IS_LOCAL:
+            player_ips.append("localhost")
+        else:
+            player_ips.append(input(f"다른 플레이어의 IP입력"))
 
 if Players > 1 and not DEBUG:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -500,6 +509,8 @@ def recv_thread(sock):
         if not header.startswith("Player"):
             continue
         playern = int(header[6:])
+        if playern == 1 and not Started:
+            Started = True
         payload = " ".join(spl_data[1:])
         if playern == my_Turn:
             continue
@@ -546,12 +557,8 @@ key_pressed = {"Down" : False,"Left" : False,"Right" : False}
 key_cooldown = {"Right": 0, "Left": 0, "Down": 0}
 COOLDOWN_TIME = 5
 
-if my_Turn == 1:
-    if Players >= 2 and not DEBUG:
-        t="StartGame"
-        for ip,port in zip(player_ips,player_ports):
-            sock.sendto(t.encode('utf-8'),(ip,port))
-else:
+
+if my_Turn != 1:
     while not Started:
         print("게임이 시작될때까지 대기하세요")
         time.sleep(0.25)
