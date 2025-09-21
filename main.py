@@ -204,7 +204,7 @@ def get_board_positions(players, screen_w, screen_h):
     return res
 
 def update_boards():
-    global PlayerB1, OthersPB
+    global PlayerB1, OthersPB,CurrentBoard
     positions = get_board_positions(Players, SCREEN_X, SCREEN_Y)
     p1_x, p1_y, size1 = positions[0]
     PlayerB1 = PlayerBoard(1, p1_x, p1_y, size1, CurrentBoard)
@@ -326,10 +326,16 @@ def Special_Effect(Special_Name,Height):
         CurrentBoard[Height+1] = fill
     elif Special_Name == "Goal":
         print("목표에 도달하였습니다")
-        level = int(save_file_path.split("level")[1].split(".txt")[0])
-        save_file_path = "level"+str(level+1)+".txt"
-        CurrentBoard = LoadSavedBoard()
-        update_boards()
+        try:
+            level = int(save_file_path.split("level")[1].split(".txt")[0])
+        except Exception:
+            level = 1
+        save_file_path = f"level{level+1}.txt"
+        CurrentBoard[:] = LoadSavedBoard()
+        #update_boards()
+        time.sleep(0.5)
+        return
+
 
 def Func_Rotate_Block(dir):
     global CurrentBoard
@@ -400,6 +406,7 @@ def Force_Fall_Block():
                     CurrentBoard[i][j][1] = False
             lines_cleared = 0
             new_board = []
+            isgoal = False
             for i,row in enumerate(CurrentBoard):
                 if all(cell != 0 and not cell[1] for cell in row):
                     for xx in row:
@@ -407,6 +414,7 @@ def Force_Fall_Block():
                             if xx[2]!=None and xx[2] in SPECIAL:
                                 Special_Effect(xx[2],i)
                                 if xx[2] == "Goal":
+                                    isgoal = True
                                     break
                     lines_cleared += 1
                 else:
@@ -419,7 +427,8 @@ def Force_Fall_Block():
                 if Players >= 2 and not DEBUG:
                     for ip,port in zip(player_ips,player_ports):
                         sock.sendto(t.encode('utf-8'),(ip,port))
-            CurrentBoard[:] = copy.deepcopy(new_board)
+            if not isgoal:
+                CurrentBoard[:] = copy.deepcopy(new_board)
             Score += lines_cleared * 100
             Block_Spawn_Ready = True
             break
@@ -447,6 +456,7 @@ def Func_Fall_Block():
                 CurrentBoard[i][j][1] = False
         lines_cleared = 0
         new_board = []
+        isgoal = False
         for i,row in enumerate(CurrentBoard):
             if all(cell != 0 and not cell[1] for cell in row):
                 for xx in row:
@@ -454,6 +464,7 @@ def Func_Fall_Block():
                         if xx[2]!=None and xx[2] in SPECIAL:
                             Special_Effect(xx[2],i)
                             if xx[2] == "Goal":
+                                isgoal = False
                                 break
                 lines_cleared += 1
             else:
@@ -466,7 +477,8 @@ def Func_Fall_Block():
             if Players >= 2 and not DEBUG:
                 for ip,port in zip(player_ips,player_ports):
                     sock.sendto(t.encode('utf-8'),(ip,port))
-        CurrentBoard[:] = copy.deepcopy(new_board)
+        if not isgoal:
+            CurrentBoard[:] = copy.deepcopy(new_board)
         Score += lines_cleared * 100
         Block_Spawn_Ready = True
     fall_tick = tick + (FPS/(1+(0.1*(Score//200))))
