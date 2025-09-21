@@ -6,16 +6,16 @@
  0 0 0 0 0 0 0 0 0 0 
  0 0 0 0 0 0 0 0 0 0 
  0 0 0 0 0 0 0 0 0 0 
- 0 0 0 0 0 0 0 0 0 0 
- 0 0 0 0 0 0 0 0 0 0 
- 0 0 0 0 0 0 0 0 0 0 
- 0 0 0 0 0 0 0 0 0 0 
- 0 0 0 0 0 0 0 0 0 0 
- 0 4$False$None 4$False$None 0 4$False$None 4$False$None 0 4$False$None 4$False$None 4$False$Add_1 
- 4$False$None 4$False$None 4$False$None 4$False$None 0 4$False$None 4$False$None 4$False$None 4$False$None 0 
- 0 0 0 0 0 0 0 0 0 0 
- 0 0 0 0$False$None 0$False$None 0$False$None 0$False$None 0$False$Bomb 0$False$None 0$False$None 
- 0$False$None 0$False$None 0$False$None 0$False$None 0$False$None 0$False$None 0$False$None 0$False$None 0 0 
- 1$False$None 1$False$None 1$False$None 0 0 1$False$None 1$False$None 1$False$Bomb 1$False$None 1$False$None 
- 1$False$None 7$False$Goal 1$False$None 1$False$None 1$False$None 0 1$False$None 1$False$None 0 0 
+ 3$False$None 0 0 0 3$False$None 0 0 0 3$False$None 0 
+ 3$False$None 3$False$None 0 3$False$None 3$False$None 3$False$None 0 3$False$None 3$False$None 3$False$None 
+ 3$False$None 0 0 0 3$False$None 0 0 0 3$False$None 0 
+ 0 0 0 2$False$None 0 0 0 2$False$None 0 0 
+ 2$False$None 0 2$False$None 2$False$None 2$False$None 0 2$False$None 2$False$None 2$False$None 0 
+ 0 0 0 2$False$None 0 0 0 2$False$None 0 0 
+ 0 0 1$False$None 0 0 0 1$False$None 0 0 0 
+ 0 1$False$None 1$False$None 1$False$None 0 1$False$None 1$False$None 1$False$None 0 1$False$None 
+ 0 0 1$False$None 0 0 0 1$False$None 0 0 0 
+ 0 0$False$None 0 0 0 0$False$None 0 0 0 0$False$None 
+ 0$False$None 0$False$None 0$False$None 0 0$False$None 0$False$None 0$False$None 0 0$False$None 0$False$None 
+ 0 7$False$Goal 0 0 0 7$False$Goal 0 0 0 7$False$Goal 
  
