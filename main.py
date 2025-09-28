@@ -8,6 +8,7 @@ import threading
 import os
 DEBUG = False
 os.environ['SDL_VIDEO_WINDOW_POS'] = "250,25"
+os.chdir('C:\\Users\\Windows10\\Desktop\\kws\\Tetris')
 
 Started = False
 Players = int(input("플레이어 수는? 최대 4명\n: "))
@@ -37,7 +38,6 @@ if Players > 1 and not DEBUG:
     sock.bind(('0.0.0.0', my_port))
 save_file_path = input("불러올 맵 이름을 입력하세요. 없으면 빈 상태로 시작합니다.\n: ")+".txt"
 
-os.chdir('C:\\Users\\Windows10\\Desktop\\kws\\Tetris')
 def LoadSavedBoard():
     try:
         with open(save_file_path, "r", encoding="utf-8") as file:
@@ -332,7 +332,6 @@ def Special_Effect(Special_Name,Height):
             level = 1
         save_file_path = f"level{level+1}.txt"
         CurrentBoard[:] = LoadSavedBoard()
-        #update_boards()
         time.sleep(0.5)
         return
 
