@@ -1,0 +1,41 @@
+body {
+    margin: 0;
+}
+
+.width-arrange {
+    display: flex;
+}
+.right {
+    justify-content: flex-end;
+}
+.block {
+    width: 25px;
+    height: 25px;
+    border: 1px solid black;
+}
+.tetris-piece {
+    margin-bottom: 20px;
+}
+.tetris-piece.L-right {
+    width: calc(25px * 3);
+}
+.tetris-piece.L-reverse {
+    width: calc(25px * 2);
+}
+.red {
+    background-color: red;
+}
+
+.yellow {
+    background-color: yellow;
+}
+
+.blue {
+    background-color: blue;
+}
+.blue1 {
+    background-color: rgb(64, 64, 138);
+}
+.blue2 {
+    background-color: rgb(130, 130, 184);
+}
