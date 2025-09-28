@@ -5,6 +5,7 @@ import time
 import numpy
 import os
 os.environ['SDL_VIDEO_WINDOW_POS'] = "250,25"
+os.chdir('C:\\Users\\Windows10\\Desktop\\kws\\Tetris')
 save_file_path = input("불러올 맵 이름을 입력하세요. 없으면 빈 상태로 시작합니다.\n: ")+".txt"
 def LoadSavedBoard():
     try:
